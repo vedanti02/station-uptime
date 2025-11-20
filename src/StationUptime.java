@@ -1,11 +1,13 @@
 import java.math.BigInteger;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Computes station uptime using merged intervals.
  */
 public class StationUptime {
 
+    private static final Logger logger = Logger.getLogger(StationUptime.class.getName());
     private final InputParsingValidation parser;
 
     public StationUptime(InputParsingValidation parser) {
@@ -14,13 +16,17 @@ public class StationUptime {
 
     /** Computes uptime for each station & prints it. */
     public void computeAndPrint() {
+        logger.info("Starting uptime computation for all stations.");
         List<Long> stations = new ArrayList<>(parser.stationToChargers.keySet());
         Collections.sort(stations);
 
         for (long stationId : stations) {
             int uptime = computeUptime(stationId);
             System.out.println(stationId + " " + uptime);
+            logger.info("Computed uptime for station " + stationId + ": " + uptime + "%");
         }
+
+        logger.info("Completed uptime computation.");
     }
 
     /** Computes uptime % for a station. */
@@ -28,23 +34,43 @@ public class StationUptime {
         List<Interval> all = new ArrayList<>();
         List<Interval> up = new ArrayList<>();
 
-        for (long cid : parser.stationToChargers.get(stationId)) {
+        List<Long> chargers = parser.stationToChargers.get(stationId);
+        if (chargers == null || chargers.isEmpty()) {
+            logger.warning("Station " + stationId + " has no chargers defined. Returning uptime 0.");
+            return 0;
+        }
+
+        for (long cid : chargers) {
             if (parser.chargerAll.containsKey(cid))
                 all.addAll(parser.chargerAll.get(cid));
             if (parser.chargerUp.containsKey(cid))
                 up.addAll(parser.chargerUp.get(cid));
         }
 
+        if (all.isEmpty()) {
+            logger.warning("Station " + stationId + " has chargers but no availability data. Returning uptime 0.");
+            return 0;
+        }
+
         BigInteger reporting = computeSpan(all);
         BigInteger available = mergedLength(up);
 
-        if (reporting.equals(BigInteger.ZERO)) return 0;
+        if (reporting.equals(BigInteger.ZERO)) {
+            logger.warning("Station " + stationId + " reporting time is zero. Returning uptime 0.");
+            return 0;
+        }
 
         BigInteger pct = available.multiply(BigInteger.valueOf(100))
                 .divide(reporting);
 
-        if (pct.compareTo(BigInteger.valueOf(100)) > 0) return 100;
-        if (pct.compareTo(BigInteger.ZERO) < 0) return 0;
+        if (pct.compareTo(BigInteger.ZERO) < 0) {
+            logger.warning("Negative uptime computed for station " + stationId + ". Clamping to 0.");
+            return 0;
+        }
+        if (pct.compareTo(BigInteger.valueOf(100)) > 0) {
+            logger.warning("Uptime above 100% computed for station " + stationId + ". Clamping to 100.");
+            return 100;
+        }
 
         return pct.intValue();
     }
@@ -74,7 +100,7 @@ public class StationUptime {
         }
         return total.add(ce.subtract(cs));
     }
-
+    /** Computes reporting span: maxEnd - minStart. */
     private BigInteger computeSpan(List<Interval> intervals) {
         if (intervals.isEmpty()) return BigInteger.ZERO;
 
@@ -92,5 +118,4 @@ public class StationUptime {
 
         return maxEnd.subtract(minStart);
     }
-
 }

@@ -55,11 +55,21 @@ Option 1 — Using IntelliJ IDEA (Recommended)
 IntelliJ automatically compiles .class files into the out/ folder if specified in the file properties
 Anway, to use terminal:
 
-#### If your .java files are under src/, compile with:
+#### If your .java files are under src/, navigate to root -> compile with:
 `javac -d out src/*.java`
 
-#### Run with:
-`javac -d out src/*.java`
+#### Navigate to out/ -> Run with:
+`java Main ../input_1.txt`
+
+# Logging
+
+- The program uses Java’s built-in java.util.logging to record:
+- Parsing progress 
+- Warnings about malformed data 
+- Uptime computation status 
+- Any internal errors
+- Logs Are Saved to logs/ Directory. Each run generates a new timestamped log file.
+
 
 # Testing (JUnit 5)
 
