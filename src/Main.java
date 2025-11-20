@@ -14,7 +14,6 @@ public class Main {
 
         try {
             InputParsingValidation parser = new InputParsingValidation();
-            // Now catches the specific exceptions
             parser.parse(args[0]);
 
             StationUptime uptimeService = new StationUptime(parser);
